@@ -1,8 +1,5 @@
 import requests
 from flask import Flask
-import request
-import jsonify
-import json
 import os
 from pymongo import MongoClient
 from tensorflow.keras.models import model_from_json
@@ -17,8 +14,9 @@ from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 from boto3.session import Session
 import boto3
 
-ACCESS_KEY = 'AKIAYI2Q75UE6EJNHGSG'
-SECRET_KEY = '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'
+ACCESS_KEY = 'AKIAYI2Q75UE2JEQY3ZU'
+SECRET_KEY = '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'
+
 
 session = Session(aws_access_key_id=ACCESS_KEY,
               aws_secret_access_key=SECRET_KEY)
@@ -34,8 +32,10 @@ s3.download_file('environmentdetection','WhatsApp Video 2020-06-23 at 10.16.48 A
 tar = 'sam1.mp4'
 a = ffmpeg_extract_subclip('out.mp4', 0, 20, targetname=tar)
 
+os.remove("out.mp4")
 model = load_model('narmodel.h5')
-source=cv2.VideoCapture('out.mp4')
+source=cv2.VideoCapture('sam1.mp4')
+os.remove("sam1.mp4")
 indoor=0
 outdoor=0
 while(True):
@@ -54,20 +54,16 @@ while(True):
 cv2.destroyAllWindows()
 source.release()
 
-
-
-
-
 app=Flask(__name__)
 text = []
 cluster = MongoClient("mongodb+srv://chatteltech19:chattel19@cluster0-icted.mongodb.net/machine_model?retryWrites=true&w=majority")
 db = cluster["machine_model"]
 collection = db["inputs"]
 
-"""To display input text in json format in a route"""
 
-"""Main machine learning function calling here and retrieving text from database"""
-
+@app.route('/', methods=['GET','POST'])
+def start():
+    return 'Api Working!'
 
 @app.route('/api', methods=['GET','POST'])
 def environment_detect():
@@ -75,19 +71,15 @@ def environment_detect():
         return 0
     else:
         return 1
+print(environment_detect())
 
 @app.route('/api/add', methods=['GET','POST'])
 def add_text():
-    f = open("sample_text.txt")
-    s = f.read()
-    s = s.replace("\n", "")
     data_count = collection.count_documents({})
-    post = {"_id": data_count,"input": s}
+    post = {"_id": data_count,"result": environment_detect()}
     collection.insert_one(post)
     return "text added successfully"
-   
+print(add_text())
 
 if __name__=="__main__":
-    print(environment_detect())
-    print(add_text())
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=81)
